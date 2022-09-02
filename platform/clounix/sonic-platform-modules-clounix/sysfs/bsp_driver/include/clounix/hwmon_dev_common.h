@@ -13,21 +13,12 @@
 #define to_dev_attr(a) container_of(a, struct device_attribute, attr)
 
 struct hwmon_device {
-    const char *name;
-    struct device dev;
-    const struct hwmon_chip_info *chip;
-    struct list_head tzdata;
-    struct attribute_group group;
-    const struct attribute_group **groups;
-};
+     const char *name;
+     struct device dev;
+     const struct hwmon_chip_info *chip;
 
-struct hwmon_device_attribute {
-    struct device_attribute dev_attr;
-    const struct hwmon_ops *ops;
-    enum hwmon_sensor_types type;
-    u32 attr;
-    int index;
-    char name[MAX_SYSFS_ATTR_NAME_LENGTH];
+     struct attribute_group group;
+     const struct attribute_group **groups;
 };
 
 struct temp_data {
@@ -47,6 +38,7 @@ struct temp_data {
     struct attribute_group attr_group;
     struct mutex update_lock;
 };
+
 
 struct platform_data {
     struct device       *hwmon_dev;

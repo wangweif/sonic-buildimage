@@ -107,7 +107,7 @@ static int clx_driver_clx8000_get_main_board_curr_number(void *driver)
  */
 static ssize_t clx_driver_clx8000_get_main_board_curr_alias(void *driver, unsigned int curr_index, char *buf, size_t count)
 {
-    unsigned char sensor_index = get_sensor_index(curr_index, curr_index_range_map);
+    unsigned char sensor_index = get_psu_sensor_index(curr_index, curr_index_range_map);
     struct i2c_client *client = sensor_arry[sensor_index];
     unsigned char curr_sensor_index;
     unsigned char node_name[PMBUS_NAME_SIZE];
@@ -139,7 +139,7 @@ static ssize_t clx_driver_clx8000_get_main_board_curr_alias(void *driver, unsign
  */
 static ssize_t clx_driver_clx8000_get_main_board_curr_type(void *driver, unsigned int curr_index, char *buf, size_t count)
 {
-    unsigned char sensor_index = get_sensor_index(curr_index, curr_index_range_map);
+    unsigned char sensor_index = get_psu_sensor_index(curr_index, curr_index_range_map);
     struct i2c_client *client = sensor_arry[sensor_index];
     int ret = -1;
 
@@ -166,7 +166,7 @@ static ssize_t clx_driver_clx8000_get_main_board_curr_type(void *driver, unsigne
  */
 static ssize_t clx_driver_clx8000_get_main_board_curr_max(void *driver, unsigned int curr_index, char *buf, size_t count)
 {
-    unsigned char sensor_index = get_sensor_index(curr_index, curr_index_range_map);
+    unsigned char sensor_index = get_psu_sensor_index(curr_index, curr_index_range_map);
     struct i2c_client *client = sensor_arry[sensor_index];
     unsigned char curr_sensor_index;
     unsigned char node_name[PMBUS_NAME_SIZE];
@@ -196,7 +196,7 @@ static ssize_t clx_driver_clx8000_get_main_board_curr_max(void *driver, unsigned
  */
 static int clx_driver_clx8000_set_main_board_curr_max(void *driver, unsigned int curr_index, const char *buf, size_t count)
 {
-    unsigned char sensor_index = get_sensor_index(curr_index, curr_index_range_map);
+    unsigned char sensor_index = get_psu_sensor_index(curr_index, curr_index_range_map);
     struct i2c_client *client = sensor_arry[sensor_index];
     unsigned char curr_sensor_index;
     unsigned char node_name[PMBUS_NAME_SIZE];
@@ -227,7 +227,7 @@ static int clx_driver_clx8000_set_main_board_curr_max(void *driver, unsigned int
  */
 static ssize_t clx_driver_clx8000_get_main_board_curr_min(void *driver, unsigned int curr_index, char *buf, size_t count)
 {
-    unsigned char sensor_index = get_sensor_index(curr_index, curr_index_range_map);
+    unsigned char sensor_index = get_psu_sensor_index(curr_index, curr_index_range_map);
     struct i2c_client *client = sensor_arry[sensor_index];
     unsigned char curr_sensor_index;
     unsigned char node_name[PMBUS_NAME_SIZE];
@@ -257,7 +257,7 @@ static ssize_t clx_driver_clx8000_get_main_board_curr_min(void *driver, unsigned
  */
 static int clx_driver_clx8000_set_main_board_curr_min(void *driver, unsigned int curr_index, const char *buf, size_t count)
 {
-    unsigned char sensor_index = get_sensor_index(curr_index, curr_index_range_map);
+    unsigned char sensor_index = get_psu_sensor_index(curr_index, curr_index_range_map);
     struct i2c_client *client = sensor_arry[sensor_index];
     unsigned char curr_sensor_index;
     unsigned char node_name[PMBUS_NAME_SIZE];
@@ -287,7 +287,7 @@ static int clx_driver_clx8000_set_main_board_curr_min(void *driver, unsigned int
  */
 static ssize_t clx_driver_clx8000_get_main_board_curr_value(void *driver, unsigned int curr_index, char *buf, size_t count)
 {
-    unsigned char sensor_index = get_sensor_index(curr_index, curr_index_range_map);
+    unsigned char sensor_index = get_psu_sensor_index(curr_index, curr_index_range_map);
     struct i2c_client *client = sensor_arry[sensor_index];
     unsigned char curr_sensor_index;
     unsigned char node_name[PMBUS_NAME_SIZE];

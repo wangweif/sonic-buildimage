@@ -73,7 +73,7 @@ static int mp2882_read_byte_data(struct i2c_client *client, int page, int reg)
 
 #define mfr_vout_loop_ctrl_r1 0xb2
 #define mfr_vr_cfg1 0xb7
-static unsigned short process_vout(struct i2c_client *client, int page, int phase, int reg)
+static unsigned short process_vout(struct i2c_client *client, int page, int reg)
 {
     unsigned short mfr_vout_cfg;
     unsigned int vout;
@@ -86,8 +86,8 @@ static unsigned short process_vout(struct i2c_client *client, int page, int phas
     int gain_sel;
     int vid_step_sel;
 
-    mfr_vout_cfg = pmbus_read_word_data(client, page, phase, mfr_vout_loop_ctrl_r1);
-    vout = pmbus_read_word_data(client, page, phase, reg);
+    mfr_vout_cfg = pmbus_read_word_data(client, page, mfr_vout_loop_ctrl_r1);
+    vout = pmbus_read_word_data(client, page, reg);
     gain_sel = (mfr_vout_cfg >> 10) & 0x3;
     vid_step_sel = (mfr_vout_cfg >> 14) & 0x3;
 
@@ -101,26 +101,26 @@ static unsigned short process_vout(struct i2c_client *client, int page, int phas
     return vout;
 }
 
-static unsigned short process_power(struct i2c_client *client, int page, int phase, int reg)
+static unsigned short process_power(struct i2c_client *client, int page, int reg)
 {
     unsigned short mfr_vr_cfg;
     unsigned short power;
     unsigned char modulus[] = {2, 3};
 
-    mfr_vr_cfg = pmbus_read_word_data(client, 0, phase, mfr_vr_cfg1);
+    mfr_vr_cfg = pmbus_read_word_data(client, 0, mfr_vr_cfg1);
     mfr_vr_cfg = (mfr_vr_cfg >> 6) & 0x1;
-    power = pmbus_read_word_data(client, page, phase, reg);
+    power = pmbus_read_word_data(client, page, reg);
     power = power >> modulus[mfr_vr_cfg];
 
     return power;
 }
 
-static unsigned int process_iout(struct i2c_client *client, int page, int phase, int reg)
+static unsigned int process_iout(struct i2c_client *client, int page, int reg)
 {
     unsigned int data;
     unsigned int exp;
 
-    data = pmbus_read_word_data(client, page, 0xff, reg);
+    data = pmbus_read_word_data(client, page, reg);
     exp = data >> 11;
     data = data & 0x7ff;
 
@@ -134,17 +134,17 @@ static unsigned int process_iout(struct i2c_client *client, int page, int phase,
     return data;
 }
 
-static int mp2882_read_word_data(struct i2c_client *client, int page, int phase, int reg)
+static int mp2882_read_word_data(struct i2c_client *client, int page, int reg)
 {
     switch (reg) {
         case PMBUS_READ_IOUT:
-            return process_iout(client, page, phase, reg);
+            return process_iout(client, page, reg);
 
         case PMBUS_READ_VOUT:
-            return process_vout(client, page, phase, reg);
+            return process_vout(client, page, reg);
 
         case PMBUS_READ_POUT:
-            return process_power(client, page, phase, reg);
+            return process_power(client, page, reg);
 
         default:
             break;
@@ -152,6 +152,7 @@ static int mp2882_read_word_data(struct i2c_client *client, int page, int phase,
     return -ENODATA;
 }
 
+#if 0
 static int
 mp2882_current_sense_gain_and_resolution_get(struct i2c_client *client, struct mp2882_data *data)
 {
@@ -423,47 +424,17 @@ mp2882_identify_multiphase(struct i2c_client *client, struct mp2882_data *data,
 
     return 0;
 }
+#endif
 
 static struct pmbus_platform_data mp2882_pdata = {0};
 static struct pmbus_driver_info mp2882_info = {0};
-    /*
-    .pages = 2,
-    .format[PSC_VOLTAGE_IN] = linear,
-    .format[PSC_VOLTAGE_OUT] = direct,
-    .format[PSC_TEMPERATURE] = direct,
-    .format[PSC_CURRENT_IN] = linear,
-    .format[PSC_CURRENT_OUT] = direct,
-    .format[PSC_POWER] = direct,
-    .m[PSC_TEMPERATURE] = 1,
-    .R[PSC_TEMPERATURE] = 1,
-    .m[PSC_VOLTAGE_OUT] = 1,
-    .R[PSC_VOLTAGE_OUT] = 3,
-    .m[PSC_CURRENT_OUT] = 4,
-    .m[PSC_POWER] = 1,
-    .func[0] = PMBUS_HAVE_VIN | PMBUS_HAVE_VOUT | PMBUS_HAVE_STATUS_VOUT | PMBUS_HAVE_IOUT |
-           PMBUS_HAVE_STATUS_IOUT | PMBUS_HAVE_TEMP | PMBUS_HAVE_STATUS_TEMP |
-           PMBUS_HAVE_POUT | PMBUS_HAVE_PIN | PMBUS_HAVE_STATUS_INPUT |
-           PMBUS_PHASE_VIRTUAL,
-    .pfunc[0] = PMBUS_HAVE_IOUT,
-    .pfunc[1] = PMBUS_HAVE_IOUT,
-    .pfunc[2] = PMBUS_HAVE_IOUT,
-    .pfunc[3] = PMBUS_HAVE_IOUT,
-    .pfunc[4] = PMBUS_HAVE_IOUT,
-    .pfunc[5] = PMBUS_HAVE_IOUT,
-    .pfunc[6] = PMBUS_HAVE_IOUT,
-    .pfunc[7] = PMBUS_HAVE_IOUT,
-    .pfunc[8] = PMBUS_HAVE_IOUT,
-    .pfunc[9] = PMBUS_HAVE_IOUT,
-    .read_byte_data = mp2882_read_byte_data,
-    .read_word_data = mp2882_read_word_data,
-    .write_word_data = mp2882_write_word_data,
-    */
 
 extern int vol_sensor_add(struct i2c_client *client);
 extern void vol_sensor_del(struct i2c_client *client);
 extern int curr_sensor_add(struct i2c_client *client);
 extern void curr_sensor_del(struct i2c_client *client);
-static int mp2882_probe(struct i2c_client *client)
+
+static int mp2882_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
     struct pmbus_driver_info *info;
     struct mp2882_data *data;
@@ -506,7 +477,7 @@ static int mp2882_probe(struct i2c_client *client)
     info->read_byte_data  = mp2882_read_byte_data;
     info->read_word_data  = mp2882_read_word_data;
 
-    if (pmbus_do_probe(client, info) == 0) {
+    if (pmbus_do_probe(client, id, info) == 0) {
         vol_sensor_add(client);
         curr_sensor_add(client);
         return 0;
@@ -515,11 +486,12 @@ static int mp2882_probe(struct i2c_client *client)
     return -1;
 }
 
-static int mp2882_remove(struct i2c_client* client)
+int mp2882_remove(struct i2c_client *client)
 {
-    pmbus_do_remove(client);
     vol_sensor_del(client);
     curr_sensor_del(client);
+    pmbus_do_remove(client);
+
     return 0;
 }
 
@@ -541,7 +513,7 @@ static struct i2c_driver mp2882_driver = {
         .name = "mp2882",
         .of_match_table = of_match_ptr(mp2882_of_match),
     },
-    .probe_new = mp2882_probe,
+    .probe = mp2882_probe,
     .remove = mp2882_remove,
     .id_table = mp2882_id,
 };

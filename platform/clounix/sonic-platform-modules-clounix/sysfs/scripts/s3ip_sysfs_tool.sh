@@ -5,6 +5,7 @@ s3ip_start(){
         sudo modprobe i2c_mux
         sudo modprobe pmbus_core
         sudo modprobe i2c_mux-pca9548
+        sudo modprobe at24
         sudo insmod $INSTALL_PATH/s3ip_sysfs.ko
         sudo insmod $INSTALL_PATH/clounix_sysfs_main.ko
         sudo insmod $INSTALL_PATH/clounix_fpga.ko
@@ -26,9 +27,8 @@ s3ip_start(){
         sudo insmod $INSTALL_PATH/gwcr-psu.ko
         sudo insmod $INSTALL_PATH/mp2882.ko
         sudo insmod $INSTALL_PATH/tps546b24a.ko
-        sudo insmod $INSTALL_PATH/tmp75c.ko
-        sudo insmod $INSTALL_PATH/adm1166
-        sudo insmod $INSTALL_PATH/at24
+        sudo insmod $INSTALL_PATH/tmp75.ko
+        sudo insmod $INSTALL_PATH/adm1166.ko
         sudo rmmod coretemp
         sudo insmod $INSTALL_PATH/cputemp.ko
         sudo /usr/local/bin/s3ip_load.py create
@@ -43,7 +43,7 @@ s3ip_stop(){
         sudo rmmod gwcr-psu
         sudo rmmod mp2882
         sudo rmmod tps546b24a
-        sudo rmmod tmp75c
+        sudo rmmod tmp75
         sudo rmmod curr_sensor_dev_driver
         sudo rmmod watchdog_dev_driver
         sudo rmmod fpga_dev_driver

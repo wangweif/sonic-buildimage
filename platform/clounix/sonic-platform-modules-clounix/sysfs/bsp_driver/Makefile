@@ -86,9 +86,9 @@ obj-m += adm1275.o
 obj-m += mp2882.o
 obj-m += gwcr-psu.o
 obj-m += tps546b24a.o
-obj-m += tmp75c.o
+obj-m += tmp75.o
 obj-m += adm1166.o
-#obj-m += cputemp.o
+obj-m += cputemp.o
 
 all:
 	$(MAKE) -C $(KERNEL_SRC)/build M=$(PWD) modules

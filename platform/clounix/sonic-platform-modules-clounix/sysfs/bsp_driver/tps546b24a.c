@@ -13,6 +13,8 @@
 #include <linux/pmbus.h>
 #include <linux/sysfs.h>
 #include <linux/stat.h>
+#include <linux/hwmon.h>
+
 #include <linux/hwmon-sysfs.h>
 #include "pmbus.h"
 
@@ -85,10 +87,12 @@ extern int vol_sensor_add(struct i2c_client *client);
 extern void vol_sensor_del(struct i2c_client *client);
 extern int curr_sensor_add(struct i2c_client *client);
 extern void curr_sensor_del(struct i2c_client *client);
-static int tps_probe(struct i2c_client *client)
+static int tps_probe(struct i2c_client *client,const struct i2c_device_id *id)
 {
     struct pmbus_driver_info *info;
     struct tps_data *data;
+    struct device *dev = &client->dev;
+    struct device *hwmon_dev;
 
     data = devm_kzalloc(&client->dev, sizeof(struct tps_data), GFP_KERNEL);
     if (!data)
@@ -107,9 +111,14 @@ static int tps_probe(struct i2c_client *client)
                     PMBUS_HAVE_STATUS_VOUT | PMBUS_HAVE_STATUS_IOUT | PMBUS_HAVE_STATUS_INPUT | PMBUS_HAVE_STATUS_TEMP;
     
     info->read_byte_data = priv_read_byte;
-    info->groups = attr_groups;
+    //info->groups = attr_groups;
+    hwmon_dev = devm_hwmon_device_register_with_groups(dev, client->name,
+                                                       client, attr_groups);
+    if (IS_ERR(hwmon_dev))
+        return PTR_ERR(hwmon_dev);
+ 
 
-    if (pmbus_do_probe(client, info) == 0) {
+    if (pmbus_do_probe(client, id, info) == 0) {
         vol_sensor_add(client);
         curr_sensor_add(client);
         return 0;
@@ -120,9 +129,10 @@ static int tps_probe(struct i2c_client *client)
 
 static int tps_remove(struct i2c_client *client)
 {
-    pmbus_do_remove(client);
     vol_sensor_del(client);
     curr_sensor_del(client);
+    pmbus_do_remove(client);
+
     return 0;
 }
 
@@ -144,7 +154,7 @@ static struct i2c_driver tps_driver = {
         .name = "TI tps",
         .of_match_table = of_match_ptr(tps_of_match),
     },
-    .probe_new = tps_probe,
+    .probe = tps_probe,
     .remove = tps_remove,
     .id_table = tps_id,
 };

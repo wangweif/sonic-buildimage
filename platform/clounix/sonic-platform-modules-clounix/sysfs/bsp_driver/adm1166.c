@@ -10,7 +10,7 @@
 #include <linux/delay.h>
 #include <linux/jiffies.h>
 
-#include "hwmon-sysfs.h"
+#include <linux/hwmon-sysfs.h>
 
 #define MAX_RAM_ADDR (0xff)
 #define MAX_EEPROM_LEN (0x400)
@@ -27,6 +27,10 @@
 #define prevstext (0xea)
 #define fault_msg_len (128)
 #define fault_msg_offset (0x180)
+
+#define SENSOR_DEVICE_ATTR_RO(_name, _func, _index)     \
+    SENSOR_DEVICE_ATTR(_name, 0444, _func##_show, NULL, _index)
+
 
 ssize_t chip_id_show(struct device *dev, struct device_attribute *attr, char *buf)
 {

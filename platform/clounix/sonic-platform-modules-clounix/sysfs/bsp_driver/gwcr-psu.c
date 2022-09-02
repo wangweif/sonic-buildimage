@@ -13,6 +13,7 @@
 #include <linux/pmbus.h>
 #include <linux/sysfs.h>
 #include <linux/stat.h>
+#include <linux/hwmon.h>
 #include <linux/hwmon-sysfs.h>
 #include "pmbus.h"
 
@@ -41,7 +42,7 @@ ssize_t mfr_info_show(struct device *dev, struct device_attribute *attr, char *b
     int len, i;
     struct sensor_device_attribute *s_attr = to_sensor_dev_attr(attr);
     struct i2c_client *client = to_i2c_client(dev->parent);
-    
+
     len = i2c_smbus_read_block_data(client, s_attr->index, tmp_buf);
 
     if (len > 0) {
@@ -56,7 +57,7 @@ ssize_t mfr_info_show(struct device *dev, struct device_attribute *attr, char *b
             return sprintf(buf, "%s\n", tmp_buf);
         }
     }
-    
+
     return 0;
 }
 
@@ -128,7 +129,7 @@ ssize_t led_status_show(struct device *dev, struct device_attribute *attr, char 
     if (stat & pwok)
         led_status = led_blink_green;
 
-    psu_stat_data = pmbus_read_word_data(client, 0, 0xff, PMBUS_STATUS_WORD);
+    psu_stat_data = pmbus_read_word_data(client, 0, PMBUS_STATUS_WORD);
     if ((psu_stat_data & stat_word_fail) != 0)
         led_status = led_amber;
 
@@ -180,18 +181,21 @@ static const struct attribute_group *attr_groups[] = {
 
 extern int psu_add(struct i2c_client *client);
 extern void psu_del(struct i2c_client *client);
-
-static int gwcr_probe(struct i2c_client *client)
+extern int psu_add_priv(struct i2c_client *client, struct device *dev);
+extern void psu_del_priv(struct device *dev);
+static struct device *hwmon_dev = NULL;
+static int gwcr_probe(struct i2c_client *client,const struct i2c_device_id *id)
 {
-	struct pmbus_driver_info *info;
-	struct gwcr_data *data;
+    struct pmbus_driver_info *info;
+    struct gwcr_data *data;
+    struct device *dev = &client->dev;
+    int ret;
 
 	data = devm_kzalloc(&client->dev, sizeof(struct gwcr_data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
 
     client->dev.platform_data = &gwcr_pdata;
-    //gwcr_pdata.flags = PMBUS_SKIP_STATUS_CHECK;
 
 	memcpy(&data->info, &gwcr_info, sizeof(*info));
 	info = &data->info;
@@ -202,21 +206,27 @@ static int gwcr_probe(struct i2c_client *client)
     info->func[0] = PMBUS_HAVE_VIN | PMBUS_HAVE_VOUT | PMBUS_HAVE_IIN | PMBUS_HAVE_IOUT | PMBUS_HAVE_PIN |
                     PMBUS_HAVE_POUT | PMBUS_HAVE_FAN12 | PMBUS_HAVE_TEMP | PMBUS_HAVE_TEMP2 | PMBUS_HAVE_TEMP3 |
                     PMBUS_HAVE_STATUS_VOUT | PMBUS_HAVE_STATUS_IOUT | PMBUS_HAVE_STATUS_INPUT | PMBUS_HAVE_STATUS_TEMP | PMBUS_HAVE_STATUS_FAN12;
-    
-    info->groups = attr_groups;
 
-    if (pmbus_do_probe(client, info) == 0) {
-         psu_add(client);
-         return 0;
+    hwmon_dev = devm_hwmon_device_register_with_groups(dev, client->name,
+                                                       client, attr_groups);
+    if (IS_ERR(hwmon_dev))
+        return PTR_ERR(hwmon_dev);
+
+    psu_add_priv(client, hwmon_dev);
+
+    ret = pmbus_do_probe(client, id, info);
+    if (ret == 0) {
+        psu_add(client);
     }
 
-    return -1;
+    return ret;
 }
 
 static int gwcr_remove(struct i2c_client *client)
 {
-    pmbus_do_remove(client);
+    psu_del_priv(hwmon_dev);
     psu_del(client);
+    pmbus_do_remove(client);
 
     return 0;
 }
@@ -239,7 +249,7 @@ static struct i2c_driver gwcr_driver = {
 		.name = "gwcr",
 		.of_match_table = of_match_ptr(gwcr_of_match),
 	},
-	.probe_new = gwcr_probe,
+	.probe = gwcr_probe,
 	.remove = gwcr_remove,
 	.id_table = gwcr_id,
 };

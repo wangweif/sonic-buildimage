@@ -1,17 +1,29 @@
 #include "pmbus.h"
 
 #define PMBUS_NAME_SIZE 24
+
+#define PB_STATUS_BASE      0
+#define PB_STATUS_VOUT_BASE (PB_STATUS_BASE + PMBUS_PAGES)
+#define PB_STATUS_IOUT_BASE (PB_STATUS_VOUT_BASE + PMBUS_PAGES)
+#define PB_STATUS_FAN_BASE  (PB_STATUS_IOUT_BASE + PMBUS_PAGES)
+#define PB_STATUS_FAN34_BASE    (PB_STATUS_FAN_BASE + PMBUS_PAGES)
+#define PB_STATUS_TEMP_BASE (PB_STATUS_FAN34_BASE + PMBUS_PAGES)
+#define PB_STATUS_INPUT_BASE    (PB_STATUS_TEMP_BASE + PMBUS_PAGES)
+#define PB_STATUS_VMON_BASE (PB_STATUS_INPUT_BASE + 1)
+
+#define PB_NUM_STATUS_REG   (PB_STATUS_VMON_BASE + 1)
+
 struct pmbus_sensor {
     struct pmbus_sensor *next;
     char name[PMBUS_NAME_SIZE]; /* sysfs sensor name */
     struct device_attribute attribute;
     u8 page;        /* page number */
-    u8 phase;       /* phase number, 0xff for all phases */
     u16 reg;        /* register */
     enum pmbus_sensor_classes class;    /* sensor class */
     bool update;        /* runtime sensor update needed */
     bool convert;       /* Whether or not to apply linear/vid/direct */
-    int data;       /* Sensor data. Negative if there was a read error */
+    int data;       /* Sensor data.
+                   Negative if there was a read error */
 };
 
 struct pmbus_data {
@@ -28,26 +40,34 @@ struct pmbus_data {
     int max_attributes;
     int num_attributes;
     struct attribute_group group;
-    const struct attribute_group **groups;
+    const struct attribute_group *groups[2];
     struct dentry *debugfs;     /* debugfs device directory */
 
     struct pmbus_sensor *sensors;
 
     struct mutex update_lock;
+    bool valid;
+    unsigned long last_updated; /* in jiffies */
+
+    /*
+     * A single status register covers multiple attributes,
+     * so we keep them all together.
+     */
+    u16 status[PB_NUM_STATUS_REG];
 
     bool has_status_word;       /* device uses STATUS_WORD register */
     int (*read_status)(struct i2c_client *client, int page);
 
-    s16 currpage;   /* current page, -1 for unknown/unset */
-    s16 currphase;  /* current phase, 0xff for all, -1 for unknown/unset */
+    u8 currpage;
 };
+
 
 #define RANGE_LABEL 0
 #define ADDR_LABEL 0
 #define LOCATION_LABEL 1
 #define SENSOR_OFFSET_LABEL 2
 
-static inline int get_sensor_index(int curr_index, unsigned char (*range_map)[2])
+static inline int get_psu_sensor_index(int curr_index, unsigned char (*range_map)[2])
 {
     int i = 0;
     while (range_map[i][RANGE_LABEL] != 0) {

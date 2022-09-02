@@ -48,15 +48,44 @@ DEFINE_RWLOCK(list_lock);
 #define PSU_TEMP_INDEX_OFFSET (1)
 
 static struct i2c_client *client_arry[MAX_PSU_DATA_NUM+1] = {0};
+static struct device *client_priv_arry[MAX_PSU_DATA_NUM+1] = {0};
+
 struct psu_driver_clx8000 driver_psu_clx8000;
+
+static unsigned char psu_map[][2] = {
+    {0x58, 1},
+    {0x5a, 2},
+    {0, 0},
+};
+
+int psu_add_priv(struct i2c_client *client, struct device *dev)
+{
+    int ret = -ENOMEM;
+    int i;
+
+    write_lock(&list_lock);
+
+    i = 0;
+    while (psu_map[i][0] != 0) {
+        if (client->addr == psu_map[i][0]) {
+            if (client_priv_arry[(psu_map[i][1])] == NULL) {
+                client_priv_arry[(psu_map[i][1])] = dev;
+                ret = 0;
+            }
+            break;
+        }
+
+        i++;
+    }
+
+    write_unlock(&list_lock);
+
+    return ret;
+}
+EXPORT_SYMBOL(psu_add_priv);
 
 int psu_add(struct i2c_client *client)
 {
-    static unsigned char psu_map[][2] = {
-        {0x58, 1},
-        {0x5a, 2},
-        {0, 0},
-    };
     int ret = -ENOMEM;
     int i;
 
@@ -81,6 +110,21 @@ int psu_add(struct i2c_client *client)
 }
 EXPORT_SYMBOL(psu_add);
 
+void psu_del_priv(struct device *dev)
+{
+    int i;
+
+    write_lock(&list_lock);
+    for (i=1; i<=MAX_PSU_DATA_NUM; i++) {
+        if (client_priv_arry[i] == dev)
+            client_priv_arry[i] = NULL;
+    }
+    write_unlock(&list_lock);
+
+    return;
+}
+EXPORT_SYMBOL(psu_del_priv);
+
 void psu_del(struct i2c_client *client)
 {
     int i;
@@ -102,26 +146,26 @@ static int clx_driver_clx8000_get_psu_number(void *driver)
     return MAX_PSU_DATA_NUM;
 }
 
-int get_attr_val_by_priv_name(struct i2c_client *client, char *node_name, char *buf)
+int get_priv_attr_val_by_name(struct device *dev, char *node_name, char *buf)
 {
-    struct pmbus_data *p = i2c_get_clientdata(client);
     struct device_attribute *dev_attr;
     struct attribute *a;
-    struct device dev = {0};
-    int ret = 0;
-    int i;
-  
-    for (i=0; p->groups[1]->attrs[i] != NULL; i++) {
-        a = p->groups[1]->attrs[i];
-        if (memcmp(a->name, node_name, strlen(node_name)) ==0) {
-            dev_attr = container_of(a, struct device_attribute, attr);
-            dev.parent = &client->dev;
-            ret = dev_attr->show(&dev, dev_attr, buf);
-            break;
+    struct attribute **attrs;
+    int i, j;
+
+    for (i=0; dev->groups[i] != NULL; i++) {
+        attrs = dev->groups[i]->attrs;
+        //attrs = group->attrs;
+        for (j=0; attrs[j] != NULL; j++) {
+            a = attrs[j];
+            if (strcmp(a->name, node_name) == 0) {
+                dev_attr = container_of(a, struct device_attribute, attr);
+                return dev_attr->show(dev, dev_attr, buf);
+            }
         }
     }
 
-    return ret;
+    return -1;
 }
 
 int get_attr_val_total_by_name(struct i2c_client *client, char *class, char *dir, char *buf)
@@ -176,15 +220,15 @@ static int clx_driver_clx8000_get_psu_temp_number(void *driver, unsigned int psu
 static ssize_t clx_driver_clx8000_get_psu_model_name(void *driver, unsigned int psu_index, char *buf, size_t count)
 {
     int ret = 0;
-    struct i2c_client *client;
+    struct device *dev;
 
     /* add vendor codes here */
     INDEX_CHECK(psu_index);
 
     read_lock(&list_lock);
-    client = client_arry[psu_index];
-    if (client != NULL) {
-        ret = get_attr_val_by_priv_name(client, PSU_TYPE, buf);
+    dev = client_priv_arry[psu_index];
+    if (dev != NULL) {
+        ret = get_priv_attr_val_by_name(dev, PSU_TYPE, buf);
     }
     read_unlock(&list_lock);
 
@@ -204,15 +248,15 @@ static ssize_t clx_driver_clx8000_get_psu_model_name(void *driver, unsigned int 
 static ssize_t clx_driver_clx8000_get_psu_serial_number(void *driver, unsigned int psu_index, char *buf, size_t count)
 {
     int ret = 0;
-    struct i2c_client *client;
+    struct device *dev;
 
     /* add vendor codes here */
     INDEX_CHECK(psu_index);
 
     read_lock(&list_lock);
-    client = client_arry[psu_index];
-    if (client != NULL) {
-        ret = get_attr_val_by_priv_name(client, PSU_SERIAL, buf);
+    dev = client_priv_arry[psu_index];
+    if (dev != NULL) {
+        ret = get_priv_attr_val_by_name(dev, PSU_SERIAL, buf);
     }
     read_unlock(&list_lock);
 
@@ -232,15 +276,15 @@ static ssize_t clx_driver_clx8000_get_psu_serial_number(void *driver, unsigned i
 static ssize_t clx_driver_clx8000_get_psu_part_number(void *driver, unsigned int psu_index, char *buf, size_t count)
 {
     int ret = 0;
-    struct i2c_client *client;
+    struct device *dev;
 
     /* add vendor codes here */
     INDEX_CHECK(psu_index);
 
     read_lock(&list_lock);
-    client = client_arry[psu_index];
-    if (client != NULL) {
-        ret = get_attr_val_by_priv_name(client, PSU_PART, buf);
+    dev = client_priv_arry[psu_index];
+    if (dev != NULL) {
+        ret = get_priv_attr_val_by_name(dev, PSU_PART, buf);
     }
     read_unlock(&list_lock);
 
@@ -260,15 +304,15 @@ static ssize_t clx_driver_clx8000_get_psu_part_number(void *driver, unsigned int
 static ssize_t clx_driver_clx8000_get_psu_hardware_version(void *driver, unsigned int psu_index, char *buf, size_t count)
 {
     int ret = 0;
-    struct i2c_client *client;
+    struct device *dev;
 
     /* add vendor codes here */
     INDEX_CHECK(psu_index);
     
     read_lock(&list_lock);
-    client = client_arry[psu_index];
-    if (client != NULL) {
-        ret = get_attr_val_by_priv_name(client, PSU_HW_VERSION, buf);
+    dev = client_priv_arry[psu_index];
+    if (dev != NULL) {
+        ret = get_priv_attr_val_by_name(dev, PSU_HW_VERSION, buf);
     }
     read_unlock(&list_lock);
 
@@ -505,7 +549,7 @@ static ssize_t clx_driver_clx8000_get_psu_present_status(void *driver, unsigned 
 {
     int ret = 0;
     char node_name[PMBUS_NAME_SIZE];
-    struct i2c_client *client;
+    struct device *dev;
     unsigned char prst = 0;
     unsigned char acok = 0;
 
@@ -513,15 +557,15 @@ static ssize_t clx_driver_clx8000_get_psu_present_status(void *driver, unsigned 
     INDEX_CHECK(psu_index);
 
     read_lock(&list_lock);
-    client = client_arry[psu_index];
-    if (client != NULL) {
+    dev = client_priv_arry[psu_index];
+    if (dev != NULL) {
         sprintf(node_name, "psu_%d%s", psu_index, PRST);
-        ret = get_attr_val_by_priv_name(client, node_name, buf);
+        ret = get_priv_attr_val_by_name(dev, node_name, buf);
         if (ret > 0)
             prst = *buf - '0';
         
         sprintf(node_name, "psu_%d%s", psu_index, ACOK);
-        ret = get_attr_val_by_priv_name(client, node_name, buf);
+        ret = get_priv_attr_val_by_name(dev, node_name, buf);
         if (ret > 0)
             acok = *buf - '0';
     }
@@ -557,16 +601,16 @@ static ssize_t clx_driver_clx8000_get_psu_in_status(void *driver, unsigned int p
 {
     int ret = 0;
     char node_name[PMBUS_NAME_SIZE];
-    struct i2c_client *client;
+    struct device *dev;
 
     /* add vendor codes here */
     INDEX_CHECK(psu_index);
 
     read_lock(&list_lock);
-    client = client_arry[psu_index];
-    if (client != NULL) {
+    dev = client_priv_arry[psu_index];
+    if (dev != NULL) {
         sprintf(node_name, "psu_%d%s", psu_index, ACOK);
-        ret = get_attr_val_by_priv_name(client, node_name, buf);
+        ret = get_priv_attr_val_by_name(dev, node_name, buf);
     }
     read_unlock(&list_lock);
 
@@ -591,16 +635,16 @@ static ssize_t clx_driver_clx8000_get_psu_out_status(void *driver, unsigned int 
 {
     int ret = 0;
     char node_name[PMBUS_NAME_SIZE];
-    struct i2c_client *client;
+    struct device *dev;
 
     /* add vendor codes here */
     INDEX_CHECK(psu_index);
 
     read_lock(&list_lock);
-    client = client_arry[psu_index];
-    if (client != NULL) {
+    dev = client_priv_arry[psu_index];
+    if (dev != NULL) {
         sprintf(node_name, "psu_%d%s", psu_index, PWOK);
-        ret = get_attr_val_by_priv_name(client, node_name, buf);
+        ret = get_priv_attr_val_by_name(dev, node_name, buf);
     }
     read_unlock(&list_lock);
 
@@ -755,14 +799,14 @@ static ssize_t clx_driver_clx8000_get_psu_led_status(void *driver, unsigned int 
         "blink_green",
     */ 
     int ret = 0;
-    struct i2c_client *client;
+    struct device *dev;
 
     /* add vendor codes here */
     INDEX_CHECK(psu_index);
     read_lock(&list_lock);
-    client = client_arry[psu_index];
-    if (client != NULL) {
-        ret = get_attr_val_by_priv_name(client, LED_STATUS, buf);
+    dev = client_priv_arry[psu_index];
+    if (dev != NULL) {
+        ret = get_priv_attr_val_by_name(dev, LED_STATUS, buf);
     }
     read_unlock(&list_lock);
 

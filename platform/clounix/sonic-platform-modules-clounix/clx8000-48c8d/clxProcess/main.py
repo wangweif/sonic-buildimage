@@ -44,7 +44,8 @@ class GlobalThread(common.threading.Thread):
         else:
             if message.command[0] == 'uninstall':
                 common.RUN = False
-                doUninstall()
+                #doUninstall()
+                os.system("/usr/local/bin/s3ip_sysfs_tool.sh stop")
                 result = 'Success'
             else:
                 result = self.onMessage.__doc__
@@ -603,7 +604,8 @@ def main(): #start 20200219
 
     if args[0] == 'install':
         common.RUN = True
-        doInstall()
+        #doInstall()
+        os.system("/usr/local/bin/s3ip_sysfs_tool.sh start")
         do_platformApiInit()
         do_platformApiInstall()
         functionInit()
