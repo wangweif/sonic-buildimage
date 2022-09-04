@@ -57,7 +57,7 @@ class Fan(FanBase):
         attr_rv = self.__api_helper.read_one_line_file(self.__attr_path_prefix + 'status')
         if (attr_rv != None):
             attr_rv = int(attr_rv, 16)
-            if ((attr_rv & 0x1)  == 1):
+            if ((attr_rv & 0x3) != 0):
                 presence = True
         return presence
 
@@ -98,7 +98,14 @@ class Fan(FanBase):
         Returns:
             A boolean value, True if device is operating properly, False if not
         """
-        return self.get_presence()
+        #return self.get_presence()
+        status = False
+        attr_rv = self.__api_helper.read_one_line_file(self.__attr_path_prefix + 'status')
+        if (attr_rv != None):
+            attr_rv = int(attr_rv, 16)
+            if ((attr_rv & 0x1) == 1):
+                status = True
+        return status
 
     def get_position_in_parent(self):
         """
@@ -171,7 +178,7 @@ class Fan(FanBase):
         """
         speed = 0
         if self.__is_psu_fan :
-            return 0
+            return int(self.__api_helper.read_one_line_file(self.__attr_path_prefix + 'fan_speed'))
         else:
             attr_rv = self.__api_helper.read_one_line_file(self.__attr_path_prefix + 'motor0/ratio')
         
@@ -242,11 +249,13 @@ class Fan(FanBase):
 
         attr_rv = self.__api_helper.read_one_line_file(self.__attr_path_prefix + 'led_status')
         if (int(attr_rv, 16) == 0x1):
-           color = self.STATUS_LED_COLOR_GREEN
+            color = self.STATUS_LED_COLOR_GREEN
         elif (int(attr_rv, 16) == 0x2):
             color = self.STATUS_LED_COLOR_AMBER
         elif (int(attr_rv, 16) == 0x3):
             color = self.STATUS_LED_COLOR_RED          
+        elif (int(attr_rv, 16) == 0x4):
+            color = self.STATUS_LED_COLOR_GREEN
 
         return color
 

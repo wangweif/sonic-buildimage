@@ -85,7 +85,7 @@ class PsuUtil(PsuBase):
         if (attr_value != 'ERR'):
             attr_value = int(attr_value, 16)
             # Check for PSU presence
-            if ((attr_value & 0x1)  == 1):
+            if (attr_value & 0x3):
                     status = 1
 
         return status

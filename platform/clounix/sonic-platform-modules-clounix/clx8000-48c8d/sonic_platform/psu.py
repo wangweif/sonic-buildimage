@@ -69,7 +69,7 @@ class Psu(PsuBase):
         attr_rv = self.__api_helper.read_one_line_file(self.__attr_path_prefix + 'status')
         if (attr_rv != None):
             attr_rv = int(attr_rv, 16)
-            if ((attr_rv & 0x1)  == 1):
+            if ((attr_rv & 0x3) != 0):
                 presence = True
         return presence
 
@@ -115,7 +115,7 @@ class Psu(PsuBase):
         attr_rv = self.__api_helper.read_one_line_file(self.__attr_path_prefix + 'status')
         if (attr_rv != None):
             attr_rv = int(attr_rv, 16)
-            if((attr_rv & 0x3) != 0):
+            if((attr_rv & 0x1) == 1):
                 status = True
         return status
 
@@ -195,17 +195,7 @@ class Psu(PsuBase):
             A boolean, True if PSU has stablized its output voltages and passed all
             its internal self-tests, False if not.
         """
-        #return self.get_status()
-        status = False
-        
-        attr_rv = self.__api_helper.read_one_line_file(self.__attr_path_prefix + 'status')
-        if (attr_rv != None):
-            attr_rv = int(attr_rv, 16)
-            if((attr_rv & 0x3) == 2):
-                status = True
-        return status
-
-
+        return self.get_status()
 
     def set_status_led(self, color):
         """
