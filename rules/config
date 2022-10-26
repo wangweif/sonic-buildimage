@@ -40,7 +40,7 @@ DEFAULT_BUILD_LOG_TIMESTAMP = none
 DEFAULT_USERNAME = admin
 
 # DEFAULT_PASSWORD - default password for installer build
-DEFAULT_PASSWORD = YourPaSsWoRd
+DEFAULT_PASSWORD = admin
 
 # ENABLE_DHCP_GRAPH_SERVICE - specify the source of minigraph to generate configuration file.
 # If set to y SONiC will get the minigraph from graph service. Graph service URL need to be
@@ -137,14 +137,14 @@ INCLUDE_HOST_SERVICE = n
 INCLUDE_RESTAPI = n
 
 # INCLUDE_NAT - build docker-nat for nat support
-INCLUDE_NAT = y
+INCLUDE_NAT = n
 
 # TELEMETRY_WRITABLE - Enable write/config operations via the gNMI interface.
 # Uncomment to enable:
 # TELEMETRY_WRITABLE = y
 
 # INCLUDE_MACSEC - build docker-macsec for macsec support
-INCLUDE_MACSEC = y
+INCLUDE_MACSEC = n
 
 # INCLUDE_KUBERNETES - if set to y kubernetes packages are installed to be able to
 # run as worker node in kubernetes cluster.
